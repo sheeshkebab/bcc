@@ -1,0 +1,32 @@
+---
+- name: Copy on Checksum script and crontab 
+  hosts: all 
+  become: True 
+
+  tasks:
+    # This script could live in the BCC users $HOME
+    - name: Copy fileglob.py script 
+      copy:
+        src: files/fileglob2.py
+        dest: /var/tmp
+        mode: '0775'
+        owner: root
+        group: root
+
+    # Update the user this cron runs as to match that of the BCC user
+    # Requires sudo privileges to modify the system cron
+    - name: Creates a cron file under /etc/cron.d
+      ansible.builtin.cron:
+        name: Create Checksum of BCC directory 
+        weekday: "*"
+        minute: "*/3"
+        hour: "*"
+        user: root
+        job: "/var/tmp/fileglob2.py"
+        cron_file: fileglob_checksum 
+
+    # Requires sudo privileges to modify systemctl
+    - name: Ensure the crond.service is runing
+      service:
+        name: crond.service
+        state: started 
